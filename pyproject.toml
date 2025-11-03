@@ -32,6 +32,8 @@ sopti = "sopti.__main__:main"
 [dependency-groups]
 dev = [
     "ruff>=0.14.3",
+    "pytest>=8.3.0",
+    "pytest-mock>=3.14.0",
 ]
 
 [build-system]
@@ -44,7 +46,13 @@ packages = ["src/sopti"]
 [tool.hatch.build.targets.sdist]
 include = [
   "src/**",
+  "tests/**",
   "README.md",
   "LICENSE",
   "pyproject.toml",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["src"]
