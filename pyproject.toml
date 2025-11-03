@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourname/sopti"
-Documentation = "https://github.com/yourname/sopti#readme"
+Homepage = "https://github.com/0xcr3at0rx/sopti"
+Documentation = "https://github.com/0xcr3at0rx/sopti#readme"
 
 [project.scripts]
 sopti = "sopti.__main__:main"
