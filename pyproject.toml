@@ -17,9 +17,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "python-dotenv>=1.2.1",
-    "spotdl>=4.4.3",
-    "tqdm>=4.67.1",
+  "python-dotenv>=1.2.1",
+  "spotdl>=4.4.3",
+  "tqdm>=4.67.1",
+  "spotipy>=2.24.0",
 ]
 
 [project.urls]
@@ -30,11 +31,7 @@ Documentation = "https://github.com/0xcr3at0rx/sopti#readme"
 sopti = "sopti.__main__:main"
 
 [dependency-groups]
-dev = [
-    "ruff>=0.14.3",
-    "pytest>=8.3.0",
-    "pytest-mock>=3.14.0",
-]
+dev = ["ruff>=0.14.3", "pytest>=8.3.0", "pytest-mock>=3.14.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -44,13 +41,7 @@ build-backend = "hatchling.build"
 packages = ["src/sopti"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "src/**",
-  "tests/**",
-  "README.md",
-  "LICENSE",
-  "pyproject.toml",
-]
+include = ["src/**", "tests/**", "README.md", "LICENSE", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
