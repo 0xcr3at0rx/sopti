@@ -3,8 +3,10 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from re import sub
 from typing import List
 from json import loads as _json_loads
-from ..models import SongRecord
-from ..utils.logging import setup_logging
+from sopti.models import SongRecord
+from sopti.utils.logging import setup_logging
+from sopti.config import Config
+from sopti.spotify_api import SpotifyAPIClient
 
 logger = setup_logging(__name__)
 
@@ -22,6 +24,27 @@ class PlaylistExtractor:
         self.client_secret = client_secret
         self.user_auth = user_auth
 
+        config = Config()
+        # Prioritize explicit client_id/secret, then config, then empty string
+        spotify_client_id = self.client_id or config.data.get("spotify_client_id", "")
+        spotify_client_secret = self.client_secret or config.data.get(
+            "spotify_client_secret", ""
+        )
+        self.spotify_api_client = SpotifyAPIClient(
+            client_id=spotify_client_id,
+            client_secret=spotify_client_secret,
+        )
+        if not spotify_client_id or not spotify_client_secret:
+            logger.warning(
+                "Spotify API credentials (client ID/secret) are not fully configured. "
+                "Spotify API calls might fail. Please ensure SPOTIFY_CLIENT_ID and "
+                "SPOTIFY_CLIENT_SECRET are set in your environment or config file."
+            )
+        else:
+            logger.info(
+                f"Spotify API client initialized in PlaylistExtractor with client ID: {spotify_client_id[:4]}...{spotify_client_id[-4:]}"
+            )
+
     def _build_base_cmd(self, subcommand: str) -> list[str]:
         cmd = ["spotdl", subcommand, self.profile_url]
         if self.client_id:
@@ -33,6 +56,22 @@ class PlaylistExtractor:
         return cmd
 
     def get_playlist_name(self) -> str:
+        # Attempt to get playlist name from Spotify API first
+        try:
+            api_name = self.spotify_api_client.get_playlist_name(self.profile_url)
+            if api_name:
+                logger.info(f"Extracted playlist name from Spotify API: {api_name}")
+                return api_name
+            else:
+                logger.info(
+                    "Spotify API did not return a playlist name. Falling back to SpotDL meta command."
+                )
+        except Exception as e:
+            logger.warning(
+                f"Error using Spotify API to get playlist name: {e}. Falling back to SpotDL meta command."
+            )
+
+        # Fallback to spotdl meta command
         cmd = self._build_base_cmd("meta")
         cmd.append("--json")
 
@@ -46,13 +85,7 @@ class PlaylistExtractor:
                     data = _json_loads(out)
                     candidate = None
                     if isinstance(data, dict):
-                        for key in (
-                            "name",
-                            "title",
-                            "playlist_name",
-                            "album",
-                            "album_name",
-                        ):
+                        for key in ("name", "title", "playlist_name"):
                             val = data.get(key)
                             if isinstance(val, str) and val.strip():
                                 candidate = val.strip()
@@ -60,13 +93,7 @@ class PlaylistExtractor:
                     if candidate is None and isinstance(data, list):
                         for item in data:
                             if isinstance(item, dict):
-                                for key in (
-                                    "name",
-                                    "title",
-                                    "playlist_name",
-                                    "album",
-                                    "album_name",
-                                ):
+                                for key in ("name", "title", "playlist_name"):
                                     val = item.get(key)
                                     if isinstance(val, str) and val.strip():
                                         candidate = val.strip()
@@ -74,7 +101,9 @@ class PlaylistExtractor:
                             if candidate:
                                 break
                     if candidate:
-                        logger.info(f"Extracted playlist name: {candidate}")
+                        logger.info(
+                            f"Extracted playlist name from SpotDL meta: {candidate}"
+                        )
                         return candidate
                 except Exception as e:
                     logger.warning(
@@ -94,14 +123,14 @@ class PlaylistExtractor:
             )
         except Exception as e:
             logger.error(
-                f"Exception during playlist name extraction for {self.profile_url}: {e}",
+                f"Exception during playlist name extraction with SpotDL meta for {self.profile_url}: {e}",
                 exc_info=True,
             )
         finally:
             if proc and proc.poll() is None:
                 proc.kill()
 
-        # Fallback: derive from URL path, strip query params like ?si=...
+        # Final fallback: derive from URL path, strip query params like ?si=...
         url = self.profile_url.split("?")[0].rstrip("/")
         parts = url.split("/")
         tail = parts[-1] if parts else "playlist"

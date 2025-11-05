@@ -535,6 +535,7 @@ source = { editable = "." }
 dependencies = [
     { name = "python-dotenv" },
     { name = "spotdl" },
+    { name = "spotipy" },
     { name = "tqdm" },
 ]
 
@@ -549,6 +550,7 @@ dev = [
 requires-dist = [
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "spotdl", specifier = ">=4.4.3" },
+    { name = "spotipy", specifier = ">=2.24.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
